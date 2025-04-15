@@ -167,7 +167,8 @@ export default function AccountingApp() {
   } = useAccountingStore();
 
   const [setupMode, setSetupMode] = useState(true);
-  
+  const [showUndoDialog, setShowUndoDialog] = useState(false);
+
   useEffect(() => {
     setSetupMode(useAccountingStore.getState().firstRun);
   }, []);
@@ -179,7 +180,6 @@ export default function AccountingApp() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editAmount1, setEditAmount1] = useState("");
   const [editAmount2, setEditAmount2] = useState("");
-
 
   const handleSetup = () => {
     if (!isNaN(initialAmount1) && !isNaN(initialAmount2)) {
@@ -203,6 +203,11 @@ export default function AccountingApp() {
     }
   };
 
+  const handleUndoConfirm = () => {
+    undoLastRecord();
+    setShowUndoDialog(false);
+  };
+
   useEffect(() => {
     if (showEditDialog) {
       setEditAmount1(initialAmount1.toString());
@@ -221,7 +226,7 @@ export default function AccountingApp() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
-      <h1 className="text-3xl font-bold mb-8">记账应用</h1>
+      <h1 className="text-3xl font-bold mb-8">记账</h1>
 
       {setupMode ? (
         <div className="w-full max-w-md space-y-4">
@@ -256,12 +261,15 @@ export default function AccountingApp() {
         </div>
       ) : (
         <div className="w-full max-w-md space-y-6">
-          <button
-            onClick={() => setShowEditDialog(true)}
-            className="bg-blue-500 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded"
-          >
-            修改起始余额
-          </button>
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowEditDialog(true)}
+              className="bg-blue-500 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded"
+            >
+              修改起始余额
+            </button>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-100 rounded">
               <h3 className="font-semibold">微信</h3>
@@ -274,48 +282,54 @@ export default function AccountingApp() {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="block">微信预分配金额（正数为收入，负数为支出）</label>
-              <input
-                type="number"
-                value={amount1}
-                onChange={(e) => setAmount1(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="输入正负金额"
-              />
+            {/* 微信输入框组 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block">微信预分配金额</label>
+                <input
+                  type="number"
+                  value={amount1}
+                  onChange={(e) => setAmount1(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="输入正负金额"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block">微信分配比例/金额</label>
+                <input
+                  type="number"
+                  value={fund1Allocation}
+                  onChange={(e) => setFund1Allocation(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="输入比例(0-1)或固定金额"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block">银行卡预分配金额（正数为收入，负数为支出）</label>
-              <input
-                type="number"
-                value={amount2}
-                onChange={(e) => setAmount2(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="输入正负金额"
-              />
-            </div>
+            {/* 银行卡输入框组 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block">银行卡预分配金额</label>
+                <input
+                  type="number"
+                  value={amount2}
+                  onChange={(e) => setAmount2(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="输入正负金额"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label className="block">微信分配比例/金额</label>
-              <input
-                type="number"
-                value={fund1Allocation}
-                onChange={(e) => setFund1Allocation(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="输入比例(0-1)或固定金额"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="block">银行卡分配比例/金额</label>
-              <input
-                type="number"
-                value={fund2Allocation}
-                onChange={(e) => setFund2Allocation(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="输入比例(0-1)或固定金额"
-              />
+              <div className="space-y-2">
+                <label className="block">银行卡分配比例/金额</label>
+                <input
+                  type="number"
+                  value={fund2Allocation}
+                  onChange={(e) => setFund2Allocation(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  placeholder="输入比例(0-1)或固定金额"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -331,17 +345,17 @@ export default function AccountingApp() {
 
             <div className="flex space-x-4">
               <button
-                onClick={handleRecord}
-                className="flex-1 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                记账
-              </button>
-              <button
-                onClick={undoLastRecord}
+                onClick={() => setShowUndoDialog(true)}
                 className="flex-1 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 disabled={records.length === 0}
               >
                 撤销
+              </button>
+              <button
+                onClick={handleRecord}
+                className="flex-1 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                记账
               </button>
             </div>
           </div>
@@ -388,6 +402,33 @@ export default function AccountingApp() {
               </div>
             </div>
           </dialog>
+
+          <dialog 
+            open={showUndoDialog} 
+            onClose={() => setShowUndoDialog(false)}
+            className="fixed sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 
+           bottom-0 left-0 right-0 sm:bottom-auto sm:rounded-lg rounded-t-lg p-6 shadow-lg bg-white max-w-md sm:mx-0 mx-auto"
+          >
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold">确认撤销</h3>
+              <p>确定要撤销最后一条记录吗？此操作无法恢复。</p>
+              <div className="flex justify-end space-x-2">
+                <button 
+                  onClick={() => setShowUndoDialog(false)}
+                  className="px-4 py-2 border rounded"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={handleUndoConfirm}
+                  className="px-4 py-2 bg-red-500 text-white rounded"
+                >
+                  确定
+                </button>
+              </div>
+            </div>
+          </dialog>
+
           <div className="mt-8">
             <h3 className="font-semibold mb-2">记账记录</h3>
             <div className="space-y-2">
