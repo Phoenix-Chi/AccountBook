@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface AccountingState {
+  firstRun: boolean;
   // 资金库初始金额
   initialAmount1: number;
   initialAmount2: number;
@@ -35,6 +36,7 @@ interface AccountingState {
 const useAccountingStore = create<AccountingState>()(
   persist(
     (set) => ({
+      firstRun: true,
       initialAmount1: 0,
       initialAmount2: 0,
       balance1: 0,
@@ -42,11 +44,15 @@ const useAccountingStore = create<AccountingState>()(
       records: [],
 
       setInitialAmounts: (amount1, amount2) => {
-        set({
-          initialAmount1: amount1,
-          initialAmount2: amount2,
-          balance1: amount1,
-          balance2: amount2
+        set((state) => {
+          const diff1 = amount1 - state.initialAmount1;
+          const diff2 = amount2 - state.initialAmount2;
+          return {
+            initialAmount1: amount1,
+            initialAmount2: amount2,
+            balance1: state.balance1 + diff1,
+            balance2: state.balance2 + diff2
+          };
         });
       },
 
@@ -56,14 +62,14 @@ const useAccountingStore = create<AccountingState>()(
           let fund1Change = 0;
           let fund2Change = 0;
 
-          // 资金库1计算
+          // 微信计算
           if (Math.abs(fund1) <= 1) {
             fund1Change = amt1 * fund1;
           } else {
             fund1Change = fund1;
           }
 
-          // 资金库2计算
+          // 银行卡计算
           if (Math.abs(fund2) <= 1) {
             fund2Change = amt2 * fund2;
           } else {
@@ -104,11 +110,11 @@ const useAccountingStore = create<AccountingState>()(
         set((state) => {
           if (state.records.length === 0) return state;
 
-          const lastRecord = state.records[state.records.length - 1];
+          const lastRecord = state.records[0];
           return {
             balance1: state.balance1 - lastRecord.fund1Change,
             balance2: state.balance2 - lastRecord.fund2Change,
-            records: state.records.slice(0, -1)
+            records: state.records.slice(1)
           };
         });
       }
@@ -161,18 +167,23 @@ export default function AccountingApp() {
   } = useAccountingStore();
 
   const [setupMode, setSetupMode] = useState(true);
+  
+  useEffect(() => {
+    setSetupMode(useAccountingStore.getState().firstRun);
+  }, []);
   const [amount1, setAmount1] = useState("");
   const [amount2, setAmount2] = useState("");
   const [fund1Allocation, setFund1Allocation] = useState("");
   const [fund2Allocation, setFund2Allocation] = useState("");
   const [note, setNote] = useState("");
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editAmount1, setEditAmount1] = useState("");
+  const [editAmount2, setEditAmount2] = useState("");
 
 
   const handleSetup = () => {
-    const num1 = parseFloat(amount1);
-    const num2 = parseFloat(amount2);
-    if (!isNaN(num1) && !isNaN(num2)) {
-      setInitialAmounts(num1, num2);
+    if (!isNaN(initialAmount1) && !isNaN(initialAmount2)) {
+      useAccountingStore.setState({ firstRun: false });
       setSetupMode(false);
     }
   };
@@ -192,6 +203,22 @@ export default function AccountingApp() {
     }
   };
 
+  useEffect(() => {
+    if (showEditDialog) {
+      setEditAmount1(initialAmount1.toString());
+      setEditAmount2(initialAmount2.toString());
+    }
+  }, [showEditDialog, initialAmount1, initialAmount2]);
+
+  const handleEditSubmit = () => {
+    const num1 = parseFloat(editAmount1);
+    const num2 = parseFloat(editAmount2);
+    if (!isNaN(num1) && !isNaN(num2)) {
+      setInitialAmounts(num1, num2);
+      setShowEditDialog(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
       <h1 className="text-3xl font-bold mb-8">记账应用</h1>
@@ -199,20 +226,24 @@ export default function AccountingApp() {
       {setupMode ? (
         <div className="w-full max-w-md space-y-4">
           <div className="space-y-2">
-            <label className="block">资金库1初始金额</label>
+            <label className="block">微信初始金额</label>
             <input
               type="number"
               value={initialAmount1}
-              onChange={(e) => setAmount1(e.target.value)}
+              onChange={(e) => {
+                setInitialAmounts(parseFloat(e.target.value) || 0, initialAmount2);
+              }}
               className="w-full p-2 border rounded"
             />
           </div>
           <div className="space-y-2">
-            <label className="block">资金库2初始金额</label>
+            <label className="block">银行卡初始金额</label>
             <input
               type="number"
               value={initialAmount2}
-              onChange={(e) => setAmount2(e.target.value)}
+              onChange={(e) => {
+                setInitialAmounts(initialAmount1, parseFloat(e.target.value) || 0);
+              }}
               className="w-full p-2 border rounded"
             />
           </div>
@@ -225,20 +256,26 @@ export default function AccountingApp() {
         </div>
       ) : (
         <div className="w-full max-w-md space-y-6">
+          <button
+            onClick={() => setShowEditDialog(true)}
+            className="bg-blue-500 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded"
+          >
+            修改起始余额
+          </button>
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-100 rounded">
-              <h3 className="font-semibold">资金库1</h3>
+              <h3 className="font-semibold">微信</h3>
               <p className="text-2xl">¥{balance1.toFixed(2)}</p>
             </div>
             <div className="p-4 bg-gray-100 rounded">
-              <h3 className="font-semibold">资金库2</h3>
+              <h3 className="font-semibold">银行卡</h3>
               <p className="text-2xl">¥{balance2.toFixed(2)}</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="block">资金库1预分配金额（正数为收入，负数为支出）</label>
+              <label className="block">微信预分配金额（正数为收入，负数为支出）</label>
               <input
                 type="number"
                 value={amount1}
@@ -249,7 +286,7 @@ export default function AccountingApp() {
             </div>
 
             <div className="space-y-2">
-              <label className="block">资金库2预分配金额（正数为收入，负数为支出）</label>
+              <label className="block">银行卡预分配金额（正数为收入，负数为支出）</label>
               <input
                 type="number"
                 value={amount2}
@@ -260,7 +297,7 @@ export default function AccountingApp() {
             </div>
 
             <div className="space-y-2">
-              <label className="block">资金库1分配比例/金额</label>
+              <label className="block">微信分配比例/金额</label>
               <input
                 type="number"
                 value={fund1Allocation}
@@ -271,7 +308,7 @@ export default function AccountingApp() {
             </div>
 
             <div className="space-y-2">
-              <label className="block">资金库2分配比例/金额</label>
+              <label className="block">银行卡分配比例/金额</label>
               <input
                 type="number"
                 value={fund2Allocation}
@@ -309,6 +346,48 @@ export default function AccountingApp() {
             </div>
           </div>
 
+          <dialog 
+            open={showEditDialog} 
+            onClose={() => setShowEditDialog(false)}
+            className="fixed sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 
+           bottom-0 left-0 right-0 sm:bottom-auto sm:rounded-lg rounded-t-lg p-6 shadow-lg bg-white max-w-md sm:mx-0 mx-auto"
+          >
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold">修改起始余额</h3>
+              <div className="space-y-2">
+                <label className="block">微信起始金额</label>
+                <input
+                  type="number"
+                  value={editAmount1}
+                  onChange={(e) => setEditAmount1(e.target.value)}
+                  className="w-full p-2 border rounded"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block">银行卡起始金额</label>
+                <input
+                  type="number"
+                  value={editAmount2}
+                  onChange={(e) => setEditAmount2(e.target.value)}
+                  className="w-full p-2 border rounded"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button 
+                  onClick={() => setShowEditDialog(false)}
+                  className="px-4 py-2 border rounded"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={handleEditSubmit}
+                  className="px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                  确定
+                </button>
+              </div>
+            </div>
+          </dialog>
           <div className="mt-8">
             <h3 className="font-semibold mb-2">记账记录</h3>
             <div className="space-y-2">
@@ -321,7 +400,7 @@ export default function AccountingApp() {
 
                     {record.fund1Change !== 0 && (
                       <div className="mb-2">
-                        <div className="text-sm">资金库1:</div>
+                        <div className="text-sm">微信:</div>
                         <div className="grid grid-cols-3 gap-2 text-sm">
                           <div>预分配: {record.amount1.toFixed(2)}</div>
                           <div>分配: {record.fund1Allocation}</div>
@@ -334,7 +413,7 @@ export default function AccountingApp() {
 
                     {record.fund2Change !== 0 && (
                       <div className="mb-2">
-                        <div className="text-sm">资金库2:</div>
+                        <div className="text-sm">银行卡:</div>
                         <div className="grid grid-cols-3 gap-2 text-sm">
                           <div>预分配: {record.amount2.toFixed(2)}</div>
                           <div>分配: {record.fund2Allocation}</div>
