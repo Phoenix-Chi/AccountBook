@@ -58,7 +58,6 @@ const useAccountingStore = create<AccountingState>()(
 
       addRecord: (amt1, amt2, fund1, fund2, note) => {
         set((state) => {
-
           let fund1Change = 0;
           let fund2Change = 0;
 
@@ -81,7 +80,7 @@ const useAccountingStore = create<AccountingState>()(
             const newFund1Balance = state.balance1 + fund1Change;
             const newFund2Balance = state.balance2 + fund2Change;
 
-            const newRecord = {
+            const newRecord: AccountingState['records'][0] = {
               date: new Date().toLocaleString(),
               type: fund1Change + fund2Change >= 0 ? 'income' : 'expense',
               amount1: amt1,
@@ -92,14 +91,13 @@ const useAccountingStore = create<AccountingState>()(
               fund2Change,
               fund1Balance: newFund1Balance,
               fund2Balance: newFund2Balance,
-              note,
-              amount: amt1 + amt2
+              note
             };
 
             return {
               balance1: newFund1Balance,
               balance2: newFund2Balance,
-              records: [newRecord, ...state.records] // 新记录放在最前面
+              records: [newRecord, ...state.records]
             };
           }
           return state;
@@ -121,41 +119,150 @@ const useAccountingStore = create<AccountingState>()(
     }),
     {
       name: "accounting-storage",
-      getStorage: () => ({
-        getItem: async (name: string) => {
-          const db = await openDB();
-          return (await db.get("accounting", name))?.value || null;
-        },
-        setItem: async (name: string, value: string) => {
-          const db = await openDB();
-          await db.put("accounting", { name, value });
-        },
-        removeItem: async (name: string) => {
-          const db = await openDB();
-          await db.delete("accounting", name);
-        },
+      partialize: (state) => ({
+        firstRun: state.firstRun,
+        initialAmount1: state.initialAmount1,
+        initialAmount2: state.initialAmount2,
+        balance1: state.balance1,
+        balance2: state.balance2,
+        records: state.records,
       }),
+      storage: {
+        getItem: (name) => {
+          const fallbackToLocalStorage = () => {
+            const str = localStorage.getItem(name);
+            if (!str) return null;
+            try {
+              return JSON.parse(str);
+            } catch {
+              return str;
+            }
+          };
+
+          if (!window.indexedDB) {
+            return Promise.resolve(fallbackToLocalStorage());
+          }
+
+          return new Promise((resolve) => {
+            const request = indexedDB.open("AccountingDB", 1);
+            
+            request.onerror = () => {
+              resolve(fallbackToLocalStorage());
+            };
+
+            request.onsuccess = () => {
+              const db = request.result;
+              const transaction = db.transaction("accounting", "readonly");
+              const store = transaction.objectStore("accounting");
+              const getRequest = store.get(name);
+
+              getRequest.onerror = () => {
+                resolve(fallbackToLocalStorage());
+              };
+
+              getRequest.onsuccess = () => {
+                if (!getRequest.result) {
+                  resolve(fallbackToLocalStorage());
+                  return;
+                }
+                resolve(getRequest.result.value);
+              };
+            };
+
+            request.onupgradeneeded = (event) => {
+              const db = (event.target as IDBOpenDBRequest).result;
+              if (!db.objectStoreNames.contains("accounting")) {
+                db.createObjectStore("accounting", { keyPath: "name" });
+              }
+            };
+          });
+        },
+
+        setItem: (name, value) => {
+          const fallbackToLocalStorage = () => {
+            try {
+              localStorage.setItem(name, JSON.stringify(value));
+            } catch (e) {
+              console.error('Error saving to localStorage:', e);
+            }
+          };
+
+          if (!window.indexedDB) {
+            fallbackToLocalStorage();
+            return;
+          }
+
+          return new Promise<void>((resolve) => {
+            const request = indexedDB.open("AccountingDB", 1);
+            
+            request.onerror = () => {
+              fallbackToLocalStorage();
+              resolve();
+            };
+
+            request.onsuccess = () => {
+              const db = request.result;
+              const transaction = db.transaction("accounting", "readwrite");
+              const store = transaction.objectStore("accounting");
+              const putRequest = store.put({ name, value });
+
+              putRequest.onerror = () => {
+                fallbackToLocalStorage();
+                resolve();
+              };
+
+              putRequest.onsuccess = () => {
+                resolve();
+              };
+            };
+
+            request.onupgradeneeded = (event) => {
+              const db = (event.target as IDBOpenDBRequest).result;
+              if (!db.objectStoreNames.contains("accounting")) {
+                db.createObjectStore("accounting", { keyPath: "name" });
+              }
+            };
+          });
+        },
+
+        removeItem: (name) => {
+          localStorage.removeItem(name);
+
+          if (!window.indexedDB) {
+            return Promise.resolve();
+          }
+
+          return new Promise<void>((resolve) => {
+            const request = indexedDB.open("AccountingDB", 1);
+            
+            request.onerror = () => {
+              resolve();
+            };
+
+            request.onsuccess = () => {
+              const db = request.result;
+              const transaction = db.transaction("accounting", "readwrite");
+              const store = transaction.objectStore("accounting");
+              const deleteRequest = store.delete(name);
+
+              deleteRequest.onerror = () => {
+                resolve();
+              };
+
+              deleteRequest.onsuccess = () => {
+                resolve();
+              };
+            };
+          });
+        }
+      }
     }
   )
 );
 
-async function openDB() {
-  return new Promise<IDBDatabase>((resolve) => {
-    const request = indexedDB.open("AccountingDB", 1);
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains("accounting")) {
-        db.createObjectStore("accounting", { keyPath: "name" });
-      }
-    };
-    request.onsuccess = (event) => {
-      resolve((event.target as IDBOpenDBRequest).result);
-    };
-  });
-}
-
 export default function AccountingApp() {
   const {
+    firstRun,
     initialAmount1,
     initialAmount2,
     balance1,
@@ -166,12 +273,12 @@ export default function AccountingApp() {
     undoLastRecord
   } = useAccountingStore();
 
-  const [setupMode, setSetupMode] = useState(true);
-  const [showUndoDialog, setShowUndoDialog] = useState(false);
+  const [setupMode, setSetupMode] = useState(firstRun);
 
   useEffect(() => {
-    setSetupMode(useAccountingStore.getState().firstRun);
-  }, []);
+    setSetupMode(firstRun);
+  }, [firstRun]);
+
   const [amount1, setAmount1] = useState("");
   const [amount2, setAmount2] = useState("");
   const [fund1Allocation, setFund1Allocation] = useState("");
@@ -180,6 +287,7 @@ export default function AccountingApp() {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editAmount1, setEditAmount1] = useState("");
   const [editAmount2, setEditAmount2] = useState("");
+  const [showUndoDialog, setShowUndoDialog] = useState(false);
 
   const handleSetup = () => {
     if (!isNaN(initialAmount1) && !isNaN(initialAmount2)) {

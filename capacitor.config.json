@@ -1,0 +1,22 @@
+{
+  "appId": "com.chi.account_book",
+  "appName": "account_book_chi",
+  "webDir": "out",
+  "bundledWebRuntime": false,
+  "includePlugins": true,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false,
+      "splashFullScreen": false,
+      "splashImmersive": false
+    }
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
