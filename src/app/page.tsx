@@ -334,47 +334,57 @@ export default function AccountingApp() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
-      <h1 className="text-3xl font-bold mb-8">记账</h1>
+      <h1 className="text-3xl font-bold mb-0">记账</h1>
+      {/* <p className="text-sm leading-tight text-gray-500 -mt-1">Chi</p> */}
 
       {setupMode ? (
         <div className="w-full max-w-md space-y-4">
           <div className="space-y-2">
-            <label className="block">微信初始金额</label>
+            <label htmlFor="initialWechat" className="block">微信初始金额</label>
             <input
+              id="initialWechat"
               type="number"
               value={initialAmount1}
               onChange={(e) => {
                 setInitialAmounts(parseFloat(e.target.value) || 0, initialAmount2);
               }}
-              className="w-full p-2 border rounded"
+              className="w-full p-[4px] border rounded"
+              placeholder="输入微信初始金额"
+              aria-label="微信初始金额输入框"
             />
           </div>
           <div className="space-y-2">
-            <label className="block">银行卡初始金额</label>
+            <label htmlFor="initialBank" className="block">银行卡初始金额</label>
             <input
+              id="initialBank"
               type="number"
               value={initialAmount2}
               onChange={(e) => {
                 setInitialAmounts(initialAmount1, parseFloat(e.target.value) || 0);
               }}
-              className="w-full p-2 border rounded"
+              className="w-full p-[4px] border rounded"
+              placeholder="输入银行卡初始金额"
+              aria-label="银行卡初始金额输入框"
             />
           </div>
           <button
+            type="button"
             onClick={handleSetup}
-            className="w-full py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            style={{ backgroundColor: 'rgba(177, 235, 43, 0.9)' }}  // 直接覆盖背景色
+            className="w-full py-[4px] px-[6px] text-white font-semibold rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
-            设置初始金额
+            设置
           </button>
         </div>
       ) : (
         <div className="w-full max-w-md space-y-6">
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={() => setShowEditDialog(true)}
-              className="bg-blue-500 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded"
+              className="py-[2px] px-[6px] text-white font-semibold rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
             >
-              修改起始余额
+              修改起始金额
             </button>
           </div>
 
@@ -393,24 +403,30 @@ export default function AccountingApp() {
             {/* 微信输入框组 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block">微信预分配金额</label>
+                <label htmlFor="wechatAmount" className="block">微信预分配金额</label>
                 <input
+                  id="wechatAmount"
                   type="number"
                   value={amount1}
                   onChange={(e) => setAmount1(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  // style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
+                  className="w-full p-[4px] border rounded"
                   placeholder="输入正负金额"
+                  aria-label="微信预分配金额"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block">微信分配比例/金额</label>
+                <label htmlFor="wechatAllocation" className="block">微信分配比例/金额</label>
                 <input
+                  id="wechatAllocation"
                   type="number"
                   value={fund1Allocation}
                   onChange={(e) => setFund1Allocation(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  // style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
+                  className="w-full p-[4px] border rounded"
                   placeholder="输入比例(0-1)或固定金额"
+                  aria-label="微信分配比例或金额"
                 />
               </div>
             </div>
@@ -418,124 +434,147 @@ export default function AccountingApp() {
             {/* 银行卡输入框组 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="block">银行卡预分配金额</label>
+                <label htmlFor="bankAmount" className="block">银行卡预分配金额</label>
                 <input
+                  id="bankAmount"
                   type="number"
                   value={amount2}
                   onChange={(e) => setAmount2(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  // style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
+                  className="w-full p-[4px] border rounded"
                   placeholder="输入正负金额"
+                  aria-label="银行卡预分配金额"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="block">银行卡分配比例/金额</label>
+                <label htmlFor="bankAllocation" className="block">银行卡分配比例/金额</label>
                 <input
+                  id="bankAllocation"
                   type="number"
                   value={fund2Allocation}
                   onChange={(e) => setFund2Allocation(e.target.value)}
-                  className="w-full p-2 border rounded"
+                  className="w-full p-[4px] border rounded"
                   placeholder="输入比例(0-1)或固定金额"
+                  aria-label="银行卡分配比例或金额"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block">备注</label>
+              <label htmlFor="noteInput" className="block">备注</label>
               <input
+                id="noteInput"
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full p-[4px] border rounded"
                 placeholder="输入备注信息"
+                aria-label="备注信息"
               />
             </div>
 
-            <div className="flex space-x-4">
+            <div className="w-full flex justify-center space-x-6 mt-6 px-8">
               <button
+                type="button"
                 onClick={() => setShowUndoDialog(true)}
-                className="flex-1 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
+                className="w-44 py-[5px] px-[33px] text-white font-semibold rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
                 disabled={records.length === 0}
               >
                 撤销
               </button>
               <button
+                type="button"
                 onClick={handleRecord}
-                className="flex-1 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                style={{ backgroundColor: 'rgba(177, 235, 43, 0.9)' }}  // 直接覆盖背景色
+                className="w-44 py-[5px] px-[33px] bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 text-lg"
               >
                 记账
               </button>
             </div>
           </div>
 
-          <dialog 
-            open={showEditDialog} 
-            onClose={() => setShowEditDialog(false)}
-            className="fixed sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 
-           bottom-0 left-0 right-0 sm:bottom-auto sm:rounded-lg rounded-t-lg p-6 shadow-lg bg-white max-w-md sm:mx-0 mx-auto"
-          >
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold">修改起始余额</h3>
-              <div className="space-y-2">
-                <label className="block">微信起始金额</label>
-                <input
-                  type="number"
-                  value={editAmount1}
-                  onChange={(e) => setEditAmount1(e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block">银行卡起始金额</label>
-                <input
-                  type="number"
-                  value={editAmount2}
-                  onChange={(e) => setEditAmount2(e.target.value)}
-                  className="w-full p-2 border rounded"
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button 
-                  onClick={() => setShowEditDialog(false)}
-                  className="px-4 py-2 border rounded"
-                >
-                  取消
-                </button>
-                <button 
-                  onClick={handleEditSubmit}
-                  className="px-4 py-2 bg-blue-500 text-white rounded"
-                >
-                  确定
-                </button>
+          <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${showEditDialog ? 'block' : 'hidden'}`}>
+            <div 
+              className="fixed left-1/2 top-[40%] -translate-x-1/2 w-[90%] max-w-[300px]
+              rounded-lg shadow-lg p-4 mx-auto z-50 border-3 border-gray-300"
+              style={{ backgroundColor: 'rgba(218, 226, 54, 0.9)' }}
+            >
+              <div className="space-y-3">
+                <h3 className="text-lg font-bold">修改起始金额</h3>
+                <div className="space-y-1">
+                  <label htmlFor="editWechatInit" className="block">微信起始金额</label>
+                  <input
+                    id="editWechatInit"
+                    type="number"
+                    value={editAmount1}
+                    onChange={(e) => setEditAmount1(e.target.value)}
+                    className="w-[98%] px-2 py-2 border rounded text-base"
+                    placeholder="输入微信起始金额"
+                    aria-label="修改微信起始金额"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label htmlFor="editBankInit" className="block">银行卡起始金额</label>
+                  <input
+                    id="editBankInit"
+                    type="number"
+                    value={editAmount2}
+                    onChange={(e) => setEditAmount2(e.target.value)}
+                    className="w-[98%] px-2 py-2 border rounded text-base"
+                    placeholder="输入银行卡起始金额"
+                    aria-label="修改银行卡起始金额"
+                  />
+                </div>
+                <div className="flex justify-end space-x-6 mt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowEditDialog(false)}
+                    className="px-[6px] py-[1px] bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleEditSubmit}
+                    className="px-[6px] py-[1px] bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                  >
+                    确定
+                  </button>
+                </div>
               </div>
             </div>
-          </dialog>
+          </div>
 
-          <dialog 
-            open={showUndoDialog} 
-            onClose={() => setShowUndoDialog(false)}
-            className="fixed sm:top-1/2 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:-translate-y-1/2 
-           bottom-0 left-0 right-0 sm:bottom-auto sm:rounded-lg rounded-t-lg p-6 shadow-lg bg-white max-w-md sm:mx-0 mx-auto"
-          >
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold">确认撤销</h3>
-              <p>确定要撤销最后一条记录吗？此操作无法恢复。</p>
-              <div className="flex justify-end space-x-2">
-                <button 
-                  onClick={() => setShowUndoDialog(false)}
-                  className="px-4 py-2 border rounded"
-                >
-                  取消
-                </button>
-                <button 
-                  onClick={handleUndoConfirm}
-                  className="px-4 py-2 bg-red-500 text-white rounded"
-                >
-                  确定
-                </button>
+          <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${showUndoDialog ? 'block' : 'hidden'}`}>
+            <div 
+              className="fixed left-1/2 top-[47%] -translate-x-1/2 w-[96%] max-w-[380px]
+              bg-white rounded-lg shadow-lg p-6 mx-auto z-50 border-2 border-gray-300"
+              style={{ backgroundColor: 'rgba(20, 225, 233, 0.92)' }}
+            >
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold">确认撤销</h3>
+                <p className="text-xl">确定要撤销最新一条记录吗？此操作无法恢复。</p>
+                <div className="flex justify-end space-x-4">
+                  <button 
+                    type="button"
+                    onClick={() => setShowUndoDialog(false)}
+                    className="px-[6px] py-[1px] bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 text-2xl"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleUndoConfirm}
+                    className="px-[6px] py-[1px] bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 text-2xl"
+                  >
+                    确定
+                  </button>
+                </div>
               </div>
             </div>
-          </dialog>
+          </div>
 
           <div className="mt-8">
             <h3 className="font-semibold mb-2">记账记录</h3>
