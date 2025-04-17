@@ -1,6 +1,6 @@
 {
   "appId": "com.chi.account_book",
-  "appName": "account_book_chi",
+  "appName": "鹏记",
   "webDir": "out",
   "bundledWebRuntime": false,
   "includePlugins": true,

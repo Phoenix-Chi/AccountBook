@@ -417,6 +417,10 @@ export default function AccountingApp() {
             好
           </button>
           </div>
+          
+          <div className="absolute bottom-[3%] left-[0px] right-[0px] text-center">
+            <span className="text-[15px]">Chi</span>
+          </div>
         </div>
       ) : (
         <div className="w-full max-w-md space-y-6">
