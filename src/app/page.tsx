@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 interface AccountingState {
   firstRun: boolean;
@@ -311,47 +312,52 @@ export default function AccountingApp() {
     setShowUndoDialog(false);
   };
 
-  const handleExportRecords = () => {
+
+  const handleExportRecords = async () => {
     if (records.length === 0) return;
 
-    const currentDate = new Date();
-    const fileName = `记账记录_${currentDate.getFullYear()}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getDate().toString().padStart(2, '0')}_${currentDate.getHours().toString().padStart(2, '0')}${currentDate.getMinutes().toString().padStart(2, '0')}${currentDate.getSeconds().toString().padStart(2, '0')}.txt`;
-    
-    let content = '记账记录导出\n\n';
-    content += `当前储备金信息：\n`;
-    content += `微信储备金余额：¥${balance1.toFixed(2)}\n`;
-    content += `银行卡储备金余额：¥${balance2.toFixed(2)}\n\n`;
-    content += `交易记录：\n\n`;
-    
-    records.forEach((record) => {
-      content += `[${record.date}]\n`;
-      if (record.fund1Change !== 0) {
-        content += `微信:\n`;
-        content += `  预分配: ${record.amount1.toFixed(2)}\n`;
-        content += `  分配: ${record.fund1Allocation}\n`;
-        content += `  实际: ${record.fund1Change >= 0 ? '+' : ''}${record.fund1Change.toFixed(2)}\n`;
-      }
-      if (record.fund2Change !== 0) {
-        content += `银行卡:\n`;
-        content += `  预分配: ${record.amount2.toFixed(2)}\n`;
-        content += `  分配: ${record.fund2Allocation}\n`;
-        content += `  实际: ${record.fund2Change >= 0 ? '+' : ''}${record.fund2Change.toFixed(2)}\n`;
-      }
-      if (record.note) {
-        content += `备注: ${record.note}\n`;
-      }
-      content += `\n`;
-    });
+    try {
+      const currentDate = new Date();
+      const fileName = `记账记录_${currentDate.getFullYear()}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getDate().toString().padStart(2, '0')}_${currentDate.getHours().toString().padStart(2, '0')}${currentDate.getMinutes().toString().padStart(2, '0')}${currentDate.getSeconds().toString().padStart(2, '0')}.txt`;
+      
+      let content = '记账记录导出\n\n';
+      content += `当前储备金信息：\n`;
+      content += `微信储备金余额：¥${balance1.toFixed(2)}\n`;
+      content += `银行卡储备金余额：¥${balance2.toFixed(2)}\n\n`;
+      content += `交易记录：\n\n`;
+      
+      records.forEach((record) => {
+        content += `[${record.date}]\n`;
+        if (record.fund1Change !== 0) {
+          content += `微信:\n`;
+          content += `  预分配: ${record.amount1.toFixed(2)}\n`;
+          content += `  分配: ${record.fund1Allocation}\n`;
+          content += `  实际: ${record.fund1Change >= 0 ? '+' : ''}${record.fund1Change.toFixed(2)}\n`;
+        }
+        if (record.fund2Change !== 0) {
+          content += `银行卡:\n`;
+          content += `  预分配: ${record.amount2.toFixed(2)}\n`;
+          content += `  分配: ${record.fund2Allocation}\n`;
+          content += `  实际: ${record.fund2Change >= 0 ? '+' : ''}${record.fund2Change.toFixed(2)}\n`;
+        }
+        if (record.note) {
+          content += `备注: ${record.note}\n`;
+        }
+        content += `\n`;
+      });
 
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+      await Filesystem.writeFile({
+        path: `Download/${fileName}`,
+        data: content,
+        directory: Directory.ExternalStorage,
+        encoding: Encoding.UTF8
+      });
+
+      alert('记账记录已成功导出到下载文件夹');
+    } catch (error) {
+      console.error('导出失败:', error);
+      alert('导出失败，请检查存储权限');
+    }
   };
 
   return (
@@ -365,7 +371,7 @@ export default function AccountingApp() {
               setSetupMode(true);
             }}
             style={{ backgroundColor: 'white' ,border: 'none'}}
-            className="py-[2px] px-[6px] font-semibold text-[18px] rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            className="py-[2px] px-[6px] font-semibold text-[20px] rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
           >
           🏰
           </button>
@@ -417,9 +423,11 @@ export default function AccountingApp() {
             好
           </button>
           </div>
-          
+          <div className="absolute bottom-[7%] left-[0px] right-[0px] text-center">
+            <span className="text-[20px]">⚔️🛡️⚔️</span>
+          </div>
           <div className="absolute bottom-[3%] left-[0px] right-[0px] text-center">
-            <span className="text-[15px]">Chi</span>
+            <span className="text-[14px]">Chi</span>
           </div>
         </div>
       ) : (
@@ -528,7 +536,7 @@ export default function AccountingApp() {
 
           <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${showUndoDialog ? 'block' : 'hidden'}`}>
             <div 
-              className="fixed left-1/2 top-[46%] -translate-x-1/2 w-[96%] max-w-[380px]
+              className="fixed left-1/2 top-[42%] -translate-x-1/2 w-[96%] max-w-[380px]
               rounded-lg shadow-lg p-6 mx-auto z-50 border-2"
               style={{ backgroundColor: 'rgba(20, 225, 233, 0.92)' ,border: '2px solid rgba(40, 62, 169, 0.92)' }}
             >
@@ -578,10 +586,10 @@ export default function AccountingApp() {
                       <div className="mb-2">
                         <div className="text-sm">微信:</div>
                         <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>预分配: {record.amount1.toFixed(2)}</div>
-                          <div>分配: {record.fund1Allocation}</div>
+                          <div>总变更金额: {record.amount1.toFixed(2)}</div>
+                          <div>储备金额分配: {record.fund1Allocation}</div>
                           <div className={`font-semibold ${record.fund1Change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            实际: {record.fund1Change >= 0 ? '+' : ''}{record.fund1Change.toFixed(2)}
+                            储备金变化: {record.fund1Change >= 0 ? '+' : ''}{record.fund1Change.toFixed(2)}
                           </div>
                         </div>
                       </div>
@@ -591,8 +599,8 @@ export default function AccountingApp() {
                       <div className="mb-2">
                         <div className="text-sm">银行卡:</div>
                         <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>预分配: {record.amount2.toFixed(2)}</div>
-                          <div>分配: {record.fund2Allocation}</div>
+                          <div>总变更金额: {record.amount2.toFixed(2)}</div>
+                          <div>储备金额分配: {record.fund2Allocation}</div>
                           <div className={`font-semibold ${record.fund2Change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                             实际: {record.fund2Change >= 0 ? '+' : ''}{record.fund2Change.toFixed(2)}
                           </div>
