@@ -298,7 +298,7 @@ export default function AccountingApp() {
     const amt2 = isNaN(parseFloat(String(amount2))) ? 0 : parseFloat(String(amount2));
     const fund1 = isNaN(parseFloat(String(fund1Allocation))) ? 0 : parseFloat(String(fund1Allocation));
     const fund2 = isNaN(parseFloat(String(fund2Allocation))) ? 0 : parseFloat(String(fund2Allocation));
-    if (fund1 > 1 || fund2 > 1 ||  (fund1 <=1 && amt1 !== 0) || (fund2 <=1 && amt2 !== 0)) {
+    if (Math.abs(fund1) > 1 || Math.abs(fund2) > 1 ||  (Math.abs(fund1) <=1 && amt1 !== 0) || (Math.abs(fund2) <=1 && amt2 !== 0)) {
       addRecord(amt1, amt2, fund1, fund2, note);
       setAmount1("");
       setAmount2("");
@@ -318,6 +318,11 @@ export default function AccountingApp() {
     const fileName = `记账记录_${currentDate.getFullYear()}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getDate().toString().padStart(2, '0')}_${currentDate.getHours().toString().padStart(2, '0')}${currentDate.getMinutes().toString().padStart(2, '0')}${currentDate.getSeconds().toString().padStart(2, '0')}.txt`;
     
     let content = '记账记录导出\n\n';
+    content += `当前储备金信息：\n`;
+    content += `微信储备金余额：¥${balance1.toFixed(2)}\n`;
+    content += `银行卡储备金余额：¥${balance2.toFixed(2)}\n\n`;
+    content += `交易记录：\n\n`;
+    
     records.forEach((record) => {
       content += `[${record.date}]\n`;
       if (record.fund1Change !== 0) {
@@ -382,7 +387,7 @@ export default function AccountingApp() {
               onChange={(e) => {
                 setInitialAmounts(parseFloat(e.target.value) || 0, initialAmount2);
               }}
-              className="w-full mr-[8px] p-[4px] border rounded"
+              className="w-full mr-[7px] p-[4px] border rounded"
               placeholder="输入微信初始金额"
               aria-label="微信初始金额输入框"
             />
@@ -396,7 +401,7 @@ export default function AccountingApp() {
               onChange={(e) => {
                 setInitialAmounts(initialAmount1, parseFloat(e.target.value) || 0);
               }}
-              className="w-full mr-[8px] p-[4px] border rounded"
+              className="w-full mr-[7px] p-[4px] border rounded"
               placeholder="输入银行卡初始金额"
               aria-label="银行卡初始金额输入框"
             />
@@ -429,26 +434,26 @@ export default function AccountingApp() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="wechatAmount" className="block">微信总变更金额</label>
+                <label htmlFor="wechatAmount" className="block">微信总变更金额🪙</label>
                 <input
                   id="wechatAmount"
                   type="number"
                   value={amount1}
                   onChange={(e) => setAmount1(e.target.value)}
-                  className="w-full p-[4px] border rounded"
+                  className="w-full p-[4px] mr-[6px] border rounded"
                   placeholder="输入正负金额"
                   aria-label="微信预分配金额"
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="wechatAllocation" className="block">微信储备金分配</label>
+                <label htmlFor="wechatAllocation" className="block">微信储备金分配🖊️</label>
                 <input
                   id="wechatAllocation"
                   type="number"
                   value={fund1Allocation}
                   onChange={(e) => setFund1Allocation(e.target.value)}
-                  className="w-full p-[4px] border rounded"
+                  className="w-full p-[4px] mr-[6px] border rounded"
                   placeholder="输入比例(0-1)或固定金额"
                   aria-label="微信分配比例或金额"
                 />
@@ -457,26 +462,26 @@ export default function AccountingApp() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="bankAmount" className="block">银行卡总变更金额</label>
+                <label htmlFor="bankAmount" className="block">银行卡总变更金额🪙</label>
                 <input
                   id="bankAmount"
                   type="number"
                   value={amount2}
                   onChange={(e) => setAmount2(e.target.value)}
-                  className="w-full p-[4px] border rounded"
+                  className="w-full p-[4px] mr-[6px] border rounded"
                   placeholder="输入正负金额"
                   aria-label="银行卡预分配金额"
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="bankAllocation" className="block">银行卡储备金分配</label>
+                <label htmlFor="bankAllocation" className="block">银行卡储备金分配🖊️</label>
                 <input
                   id="bankAllocation"
                   type="number"
                   value={fund2Allocation}
                   onChange={(e) => setFund2Allocation(e.target.value)}
-                  className="w-full p-[4px] border rounded"
+                  className="w-full p-[4px] mr-[6px] border rounded"
                   placeholder="输入比例(0-1)或固定金额"
                   aria-label="银行卡分配比例或金额"
                 />
@@ -552,7 +557,7 @@ export default function AccountingApp() {
               <button
                 type="button"
                 onClick={handleExportRecords}
-                className="py-[1px] px-[6px] bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                className="py-[1px] px-[6px] text-sm font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
               >
                 导出
               </button>
@@ -562,7 +567,7 @@ export default function AccountingApp() {
                 <p className="text-gray-500">暂无记录</p>
               ) : (
                 records.map((record, index) => (
-                  <div key={index} className="p-3 border rounded">
+                  <div key={index} className="p-3 border rounded w-full">
                     <div className="font-medium mb-2">{record.date}</div>
 
                     {record.fund1Change !== 0 && (
