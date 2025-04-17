@@ -284,9 +284,6 @@ export default function AccountingApp() {
   const [fund1Allocation, setFund1Allocation] = useState("");
   const [fund2Allocation, setFund2Allocation] = useState("");
   const [note, setNote] = useState("");
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editAmount1, setEditAmount1] = useState("");
-  const [editAmount2, setEditAmount2] = useState("");
   const [showUndoDialog, setShowUndoDialog] = useState(false);
 
   const handleSetup = () => {
@@ -305,8 +302,6 @@ export default function AccountingApp() {
       addRecord(amt1, amt2, fund1, fund2, note);
       setAmount1("");
       setAmount2("");
-      // setFund1Allocation("");
-      // setFund2Allocation("");
       setNote("");
     }
   };
@@ -316,31 +311,70 @@ export default function AccountingApp() {
     setShowUndoDialog(false);
   };
 
-  useEffect(() => {
-    if (showEditDialog) {
-      setEditAmount1(initialAmount1.toString());
-      setEditAmount2(initialAmount2.toString());
-    }
-  }, [showEditDialog, initialAmount1, initialAmount2]);
+  const handleExportRecords = () => {
+    if (records.length === 0) return;
 
-  const handleEditSubmit = () => {
-    const num1 = parseFloat(editAmount1);
-    const num2 = parseFloat(editAmount2);
-    if (!isNaN(num1) && !isNaN(num2)) {
-      setInitialAmounts(num1, num2);
-      setShowEditDialog(false);
-    }
+    const currentDate = new Date();
+    const fileName = `记账记录_${currentDate.getFullYear()}${(currentDate.getMonth() + 1).toString().padStart(2, '0')}${currentDate.getDate().toString().padStart(2, '0')}_${currentDate.getHours().toString().padStart(2, '0')}${currentDate.getMinutes().toString().padStart(2, '0')}${currentDate.getSeconds().toString().padStart(2, '0')}.txt`;
+    
+    let content = '记账记录导出\n\n';
+    records.forEach((record) => {
+      content += `[${record.date}]\n`;
+      if (record.fund1Change !== 0) {
+        content += `微信:\n`;
+        content += `  预分配: ${record.amount1.toFixed(2)}\n`;
+        content += `  分配: ${record.fund1Allocation}\n`;
+        content += `  实际: ${record.fund1Change >= 0 ? '+' : ''}${record.fund1Change.toFixed(2)}\n`;
+      }
+      if (record.fund2Change !== 0) {
+        content += `银行卡:\n`;
+        content += `  预分配: ${record.amount2.toFixed(2)}\n`;
+        content += `  分配: ${record.fund2Allocation}\n`;
+        content += `  实际: ${record.fund2Change >= 0 ? '+' : ''}${record.fund2Change.toFixed(2)}\n`;
+      }
+      if (record.note) {
+        content += `备注: ${record.note}\n`;
+      }
+      content += `\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8">
-      <h1 className="text-3xl font-bold mb-0">记账</h1>
-      {/* <p className="text-sm leading-tight text-gray-500 -mt-1">Chi</p> */}
-
+      <div className="w-full max-w-md flex justify-between items-center mb-6">
+        {!setupMode && (
+          <button
+            type="button"
+            onClick={() => {
+              useAccountingStore.setState({ firstRun: true });
+              setSetupMode(true);
+            }}
+            style={{ backgroundColor: 'white' ,border: 'none'}}
+            className="py-[2px] px-[6px] font-semibold text-[18px] rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+          🏰
+          </button>
+        )}
+        <h1 className="text-3xl font-bold">记账</h1>
+        {!setupMode && <div style={{ width: '33px' }}></div>} {/* 空div用于平衡布局 */}
+      </div>
+{/* 这里是设置初始金额的部分 */}
+      {/* 如果是第一次运行，显示设置初始金额的输入框 */}
+      {/* 否则显示余额和记账记录 */}
       {setupMode ? (
         <div className="w-full max-w-md space-y-4">
           <div className="space-y-2">
-            <label htmlFor="initialWechat" className="block">微信初始金额</label>
+            <label htmlFor="initialWechat" className="block">微信初始储备金额💰</label>
             <input
               id="initialWechat"
               type="number"
@@ -348,13 +382,13 @@ export default function AccountingApp() {
               onChange={(e) => {
                 setInitialAmounts(parseFloat(e.target.value) || 0, initialAmount2);
               }}
-              className="w-full p-[4px] border rounded"
+              className="w-full mr-[8px] p-[4px] border rounded"
               placeholder="输入微信初始金额"
               aria-label="微信初始金额输入框"
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="initialBank" className="block">银行卡初始金额</label>
+            <label htmlFor="initialBank" className="block">银行卡初始储备金额💰</label>
             <input
               id="initialBank"
               type="number"
@@ -362,54 +396,45 @@ export default function AccountingApp() {
               onChange={(e) => {
                 setInitialAmounts(initialAmount1, parseFloat(e.target.value) || 0);
               }}
-              className="w-full p-[4px] border rounded"
+              className="w-full mr-[8px] p-[4px] border rounded"
               placeholder="输入银行卡初始金额"
               aria-label="银行卡初始金额输入框"
             />
-          </div>
+          </div >
+
+          <div className="flex justify-center pt-[18px]">
           <button
             type="button"
             onClick={handleSetup}
-            style={{ backgroundColor: 'rgba(177, 235, 43, 0.9)' }}  // 直接覆盖背景色
-            className="w-full py-[4px] px-[6px] text-white font-semibold rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            style={{ backgroundColor: 'rgba(177, 235, 43, 0.9)' }}
+            className="w-60  py-[6px] px-[60px] font-semibold rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 text-[15px]"
           >
-            设置
+            好
           </button>
+          </div>
         </div>
       ) : (
         <div className="w-full max-w-md space-y-6">
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowEditDialog(true)}
-              className="py-[2px] px-[6px] text-white font-semibold rounded-md transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-            >
-              修改起始金额
-            </button>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-100 rounded">
-              <h3 className="font-semibold">微信</h3>
+              <h3 className="font-semibold">微信储备金💰</h3>
               <p className="text-2xl">¥{balance1.toFixed(2)}</p>
             </div>
             <div className="p-4 bg-gray-100 rounded">
-              <h3 className="font-semibold">银行卡</h3>
+              <h3 className="font-semibold">银行卡储备金💰</h3>
               <p className="text-2xl">¥{balance2.toFixed(2)}</p>
             </div>
           </div>
 
           <div className="space-y-4">
-            {/* 微信输入框组 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="wechatAmount" className="block">微信预分配金额</label>
+                <label htmlFor="wechatAmount" className="block">微信总变更金额</label>
                 <input
                   id="wechatAmount"
                   type="number"
                   value={amount1}
                   onChange={(e) => setAmount1(e.target.value)}
-                  // style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
                   className="w-full p-[4px] border rounded"
                   placeholder="输入正负金额"
                   aria-label="微信预分配金额"
@@ -417,13 +442,12 @@ export default function AccountingApp() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="wechatAllocation" className="block">微信分配比例/金额</label>
+                <label htmlFor="wechatAllocation" className="block">微信储备金分配</label>
                 <input
                   id="wechatAllocation"
                   type="number"
                   value={fund1Allocation}
                   onChange={(e) => setFund1Allocation(e.target.value)}
-                  // style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
                   className="w-full p-[4px] border rounded"
                   placeholder="输入比例(0-1)或固定金额"
                   aria-label="微信分配比例或金额"
@@ -431,16 +455,14 @@ export default function AccountingApp() {
               </div>
             </div>
 
-            {/* 银行卡输入框组 */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="bankAmount" className="block">银行卡预分配金额</label>
+                <label htmlFor="bankAmount" className="block">银行卡总变更金额</label>
                 <input
                   id="bankAmount"
                   type="number"
                   value={amount2}
                   onChange={(e) => setAmount2(e.target.value)}
-                  // style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
                   className="w-full p-[4px] border rounded"
                   placeholder="输入正负金额"
                   aria-label="银行卡预分配金额"
@@ -448,7 +470,7 @@ export default function AccountingApp() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="bankAllocation" className="block">银行卡分配比例/金额</label>
+                <label htmlFor="bankAllocation" className="block">银行卡储备金分配</label>
                 <input
                   id="bankAllocation"
                   type="number"
@@ -462,24 +484,24 @@ export default function AccountingApp() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="noteInput" className="block">备注</label>
+              <label htmlFor="noteInput" className="block">备注📃</label>
               <input
                 id="noteInput"
                 type="text"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 className="w-full p-[4px] border rounded"
-                placeholder="输入备注信息"
+                placeholder="添加备注信息"
                 aria-label="备注信息"
               />
             </div>
 
-            <div className="w-full flex justify-center space-x-6 mt-6 px-8">
+            <div className="w-full flex justify-center space-x-6 mt-[9px]">
               <button
                 type="button"
                 onClick={() => setShowUndoDialog(true)}
-                style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}  // 直接覆盖背景色
-                className="w-44 py-[5px] px-[33px] text-white font-semibold rounded-md hover:bg-blue-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+                style={{ backgroundColor: 'rgba(204, 205, 194, 0.9)' }}
+                className="w-44 py-[5px] px-[33px] font-semibold rounded-md transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed text-lg"
                 disabled={records.length === 0}
               >
                 撤销
@@ -487,71 +509,19 @@ export default function AccountingApp() {
               <button
                 type="button"
                 onClick={handleRecord}
-                style={{ backgroundColor: 'rgba(177, 235, 43, 0.9)' }}  // 直接覆盖背景色
-                className="w-44 py-[5px] px-[33px] bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 text-lg"
+                style={{ backgroundColor: 'rgba(177, 235, 43, 0.9)' }} //cursor: 'pointer'//鼠标悬停时显示手型
+                className="w-44 py-[5px] px-[33px] font-semibold rounded-md transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 text-lg"
               >
                 记账
               </button>
             </div>
           </div>
 
-          <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${showEditDialog ? 'block' : 'hidden'}`}>
-            <div 
-              className="fixed left-1/2 top-[40%] -translate-x-1/2 w-[90%] max-w-[300px]
-              rounded-lg shadow-lg p-4 mx-auto z-50 border-3 border-gray-300"
-              style={{ backgroundColor: 'rgba(218, 226, 54, 0.9)' }}
-            >
-              <div className="space-y-3">
-                <h3 className="text-lg font-bold">修改起始金额</h3>
-                <div className="space-y-1">
-                  <label htmlFor="editWechatInit" className="block">微信起始金额</label>
-                  <input
-                    id="editWechatInit"
-                    type="number"
-                    value={editAmount1}
-                    onChange={(e) => setEditAmount1(e.target.value)}
-                    className="w-[98%] px-2 py-2 border rounded text-base"
-                    placeholder="输入微信起始金额"
-                    aria-label="修改微信起始金额"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="editBankInit" className="block">银行卡起始金额</label>
-                  <input
-                    id="editBankInit"
-                    type="number"
-                    value={editAmount2}
-                    onChange={(e) => setEditAmount2(e.target.value)}
-                    className="w-[98%] px-2 py-2 border rounded text-base"
-                    placeholder="输入银行卡起始金额"
-                    aria-label="修改银行卡起始金额"
-                  />
-                </div>
-                <div className="flex justify-end space-x-6 mt-4">
-                  <button 
-                    type="button"
-                    onClick={() => setShowEditDialog(false)}
-                    className="px-[6px] py-[1px] bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50"
-                  >
-                    取消
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={handleEditSubmit}
-                    className="px-[6px] py-[1px] bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-                  >
-                    确定
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${showUndoDialog ? 'block' : 'hidden'}`}>
             <div 
-              className="fixed left-1/2 top-[47%] -translate-x-1/2 w-[96%] max-w-[380px]
-              bg-white rounded-lg shadow-lg p-6 mx-auto z-50 border-2 border-gray-300"
-              style={{ backgroundColor: 'rgba(20, 225, 233, 0.92)' }}
+              className="fixed left-1/2 top-[46%] -translate-x-1/2 w-[96%] max-w-[380px]
+              rounded-lg shadow-lg p-6 mx-auto z-50 border-2"
+              style={{ backgroundColor: 'rgba(20, 225, 233, 0.92)' ,border: '2px solid rgba(40, 62, 169, 0.92)' }}
             >
               <div className="space-y-4">
                 <h3 className="text-2xl font-bold">确认撤销</h3>
@@ -560,14 +530,14 @@ export default function AccountingApp() {
                   <button 
                     type="button"
                     onClick={() => setShowUndoDialog(false)}
-                    className="px-[6px] py-[1px] bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 text-2xl"
+                    className="px-[8px] py-[5px] text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 text-2xl"
                   >
                     取消
                   </button>
                   <button 
                     type="button"
                     onClick={handleUndoConfirm}
-                    className="px-[6px] py-[1px] bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 text-2xl"
+                    className="px-[8px] py-[5px] font-semibold rounded-md hover:bg-red-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 text-2xl"
                   >
                     确定
                   </button>
@@ -577,7 +547,16 @@ export default function AccountingApp() {
           </div>
 
           <div className="mt-8">
-            <h3 className="font-semibold mb-2">记账记录</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-semibold">记账记录</h3>
+              <button
+                type="button"
+                onClick={handleExportRecords}
+                className="py-[1px] px-[6px] bg-green-500 text-white text-sm font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+              >
+                导出
+              </button>
+            </div>
             <div className="space-y-2">
               {records.length === 0 ? (
                 <p className="text-gray-500">暂无记录</p>
