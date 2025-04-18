@@ -330,15 +330,15 @@ export default function AccountingApp() {
         content += `[${record.date}]\n`;
         if (record.fund1Change !== 0) {
           content += `微信:\n`;
-          content += `  预分配: ${record.amount1.toFixed(2)}\n`;
-          content += `  分配: ${record.fund1Allocation}\n`;
-          content += `  实际: ${record.fund1Change >= 0 ? '+' : ''}${record.fund1Change.toFixed(2)}\n`;
+          content += `  总变更金额: ${record.amount1.toFixed(2)}\n`;
+          content += `  储备金额分配: ${record.fund1Allocation}\n`;
+          content += `  储备金额变化: ${record.fund1Change >= 0 ? '+' : ''}${record.fund1Change.toFixed(2)}\n`;
         }
         if (record.fund2Change !== 0) {
           content += `银行卡:\n`;
-          content += `  预分配: ${record.amount2.toFixed(2)}\n`;
-          content += `  分配: ${record.fund2Allocation}\n`;
-          content += `  实际: ${record.fund2Change >= 0 ? '+' : ''}${record.fund2Change.toFixed(2)}\n`;
+          content += `  总变更金额: ${record.amount2.toFixed(2)}\n`;
+          content += `  储备金额分配: ${record.fund2Allocation}\n`;
+          content += `  储备金额变化: ${record.fund2Change >= 0 ? '+' : ''}${record.fund2Change.toFixed(2)}\n`;
         }
         if (record.note) {
           content += `备注: ${record.note}\n`;
@@ -454,7 +454,7 @@ export default function AccountingApp() {
                   onChange={(e) => setAmount1(e.target.value)}
                   className="w-full p-[4px] mr-[6px] border rounded"
                   placeholder="输入正负金额"
-                  aria-label="微信预分配金额"
+                  aria-label="微信总变更金额"
                 />
               </div>
 
@@ -482,7 +482,7 @@ export default function AccountingApp() {
                   onChange={(e) => setAmount2(e.target.value)}
                   className="w-full p-[4px] mr-[6px] border rounded"
                   placeholder="输入正负金额"
-                  aria-label="银行卡预分配金额"
+                  aria-label="银行卡总变更金额"
                 />
               </div>
 
@@ -569,7 +569,8 @@ export default function AccountingApp() {
               <button
                 type="button"
                 onClick={handleExportRecords}
-                className="py-[1px] px-[6px] text-sm font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+                style={{ backgroundColor: 'rgba(87, 94, 222, 0.31)' ,border: '3px double rgba(146, 155, 16, 0.88)'}}
+                className="py-[2px] px-[6px]font-semibold rounded-md hover:bg-green-600 transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
               >
                 导出
               </button>
@@ -602,7 +603,7 @@ export default function AccountingApp() {
                           <div>总变更金额: {record.amount2.toFixed(2)}</div>
                           <div>储备金额分配: {record.fund2Allocation}</div>
                           <div className={`font-semibold ${record.fund2Change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            实际: {record.fund2Change >= 0 ? '+' : ''}{record.fund2Change.toFixed(2)}
+                            储备金变化: {record.fund2Change >= 0 ? '+' : ''}{record.fund2Change.toFixed(2)}
                           </div>
                         </div>
                       </div>
